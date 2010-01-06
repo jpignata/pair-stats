@@ -1,6 +1,12 @@
 # pair-stats
 
-Check a git repository for a quick glance of your pairing stats over the last 30 days to avoid pair marriages. This assumes your commit authors are two developers names joined with either "and", an ampersand or a comma.
+At a glance statistics from your git repository showing with whom you've paired over the last month.
+
+The days column shows the number of unique days you've had a check-in with the other author, commits shows the number of individual repository commits made and % uses days to illustrate how often you've paired with the other author.
+
+Commits made without a pair are grouped under "Solo."
+
+This assumes your commit authors are developers names joined with "and", an ampersand and/or a comma.
 
 ## Usage:
 
@@ -16,6 +22,3 @@ Check a git repository for a quick glance of your pairing stats over the last 30
     Solo                 3        9        12%
     Magna Dui            1        17       4%
     Dolor Elit           0        0        0%
-    
-    
-    
