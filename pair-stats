@@ -7,15 +7,17 @@ class PairStats
 
   def analyze(author)
     @author = author
+
+    get_raw_commit_log
     parse_log
 
-    unless unique_authors.include?(@author)
+    unless all_authors.include?(@author)
       puts "No commits for #{author} found between #{(Date.today - 30).to_s} and #{Date.today.to_s}\n"
-      puts "Valid authors: #{unique_authors.join(", ")}" if unique_authors.size > 0
+      puts "Valid authors: #{all_authors.join(", ")}" if all_authors.size > 0
       exit
     end
 
-    puts "Pairing stats for #{author} since #{(Date.today - 30).to_s}\n\n"
+    puts "Pairing stats for #{@author} since #{(Date.today - 30).to_s}\n\n"
     puts "Developer            Days     Commits  %"
     puts "---------------      ----     -------  ---"
     stats.each do |stat|
@@ -28,69 +30,72 @@ class PairStats
 
   private
 
-    def parse_log
-      output = sh(GIT_LOG_COMMAND)
-      @commits = output.map do |commit|
-        date, author = commit.split("|")
-        { :date => Date.parse(date), :authors => author.split(/ and | ?& ?| ?, ?/) }
-      end
-    end
-
-    def sh(command)
+    def get_raw_commit_log
       output = ""
-      Open3.popen3(command) do |stdin, stdout, stderr|
+
+      Open3.popen3(GIT_LOG_COMMAND) do |stdin, stdout, stderr|
         while tmp = stdout.read(1024)
           output << tmp
         end
       end
-      output.split("\n")
+
+      @raw_commit_log = output.split("\n")
     end
 
-    def unique_authors
+    def parse_log
+      @commits = @raw_commit_log.map do |commit|
+        date, author = commit.split("|")
+        { :date => Date.parse(date),
+          :authors => author.split(/ and | ?& ?| ?, ?/) }
+      end
+    end
+
+    def all_authors
       @commits.map { |commit| commit[:authors] }.flatten.compact.uniq
     end
 
-    def other_authors
-      unique_authors.reject { |author| author == @author }
-    end
-
     def stats
-      stats = other_authors.map do |author|
-        commits_with_author = @commits.select do |commit|
-          commit[:authors].include?(@author) && commit[:authors].include?(author)
-        end
-        { :author => author, :days_paired => count_days(commits_with_author) }
+      @stats ||= begin
+        stats = pair_commits
+        stats << { :author => "Solo", :days_paired => number_of_unique_days_in(solo_commits) }
+        stats.sort { |a,b| b[:days_paired] <=> a[:days_paired] }
       end
-      stats << {:author => "Solo", :days_paired => solo_days}
-      stats.sort { |a,b| b[:days_paired] <=> a[:days_paired] }
     end
 
-    def solo_days
-      solo_commits = @commits.select do |commit|
+    def pair_commits
+      other_authors.map do |author|
+        { :author => author, 
+          :days_paired => number_of_unique_days_in(commits_with(author)),
+          :commits => commits_with(author).size }
+      end
+    end
+
+    def other_authors
+      all_authors.reject { |author| author == @author }
+    end
+
+    def number_of_unique_days_in(commits)
+      commits.map { |c| c[:date].to_s }.uniq.size
+    end
+
+    def commits_with(author)
+      @commits.select do |commit|
+        commit[:authors].include?(@author) && commit[:authors].include?(author)
+      end
+    end
+
+    def solo_commits
+      @commits.select do |commit|
         commit[:authors].size == 1 && commit[:authors].include?(@author)
       end
-
-      count_days(solo_commits)
     end
 
-    def count_days(commits)
-      commits.map { |c| c[:date].to_s }.uniq.size
+    def number_of_commits_with(author)
+      author == "Solo" ? solo_commits.size : stats.detect { |s| s[:author] == author }[:commits]
     end
 
     def total_pair_days
       stats.inject(0) { |sum, stat| sum + stat[:days_paired] }
-    end
-
-    def number_of_commits_with(author)
-      if author == "Solo"
-        @commits.select do |c|
-          c[:authors].include?(@author) && c[:authors].size == 1
-        end
-      else
-        @commits.select do |c|
-          c[:authors].include?(@author) && c[:authors].include?(author)
-        end
-      end.size
     end
 
 end
