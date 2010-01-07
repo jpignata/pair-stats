@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'open3'
+require 'date'
 
 class PairStats
   GIT_LOG_COMMAND = "git log --format='%ci|%an' --since='30 days ago'"
