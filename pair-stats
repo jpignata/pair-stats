@@ -1,24 +1,27 @@
 #!/usr/bin/env ruby
 
 require 'open3'
+require 'optparse'
 require 'date'
 
 class PairStats
-  GIT_LOG_COMMAND = "git log --format='%ci|%an' --since='30 days ago'"
 
-  def analyze(author)
+  DEFAULT_DAYS_TO_ANALYZE = 30
+
+  def analyze(author, options)
     @author = author
+    @options = options
 
     get_raw_commit_log
     parse_log
 
     unless all_authors.include?(@author)
-      puts "No commits for #{author} found between #{(Date.today - 30).to_s} and #{Date.today.to_s}\n"
+      puts "No commits for #{author} found between #{(Date.today - days).to_s} and #{Date.today.to_s}\n"
       puts "Valid authors: #{all_authors.join(", ")}" if all_authors.size > 0
       exit
     end
 
-    puts "Pairing stats for #{@author} since #{(Date.today - 30).to_s}\n\n"
+    puts "Pairing stats for #{@author} since #{(Date.today - days).to_s}\n\n"
     puts "Developer            Days     Commits  %"
     puts "---------------      ----     -------  ---"
     stats.each do |stat|
@@ -31,10 +34,19 @@ class PairStats
 
   private
 
+    def days
+      @options[:days] || DEFAULT_DAYS_TO_ANALYZE
+    end
+
+    def git_log_command
+      "git log --format='%ci|%an' --since='#{days} days ago'"
+    end
+
+
     def get_raw_commit_log
       output = ""
 
-      Open3.popen3(GIT_LOG_COMMAND) do |stdin, stdout, stderr|
+      Open3.popen3(git_log_command) do |stdin, stdout, stderr|
         while tmp = stdout.read(1024)
           output << tmp
         end
@@ -101,9 +113,14 @@ class PairStats
 
 end
 
+options = {}
+OptionParser.new do |opts| 
+  opts.on('-d [N]', '--days [NUMBER OF DAYS]', "number of days to analyze") { |days| options[:days] = days.to_i }
+end.parse!
+
 if ARGV.size == 0
-  puts "Usage: pair-stats <full name>"
+  puts "Usage: pair-stats [OPTIONS] <full name>"
   exit
 end
 
-PairStats.new.analyze(ARGV.join(" "))
+PairStats.new.analyze(ARGV.join(" "), options)

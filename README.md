@@ -1,6 +1,6 @@
 # pair-stats
 
-At a glance statistics from your git repository showing with whom you've paired over the last month.
+At a glance statistics from your git repository showing with whom you've paired recently.
 
 The days column shows the number of unique days you've had a check-in with the other author, commits shows the number of individual repository commits made and % uses days to illustrate how often you've paired with the other author.
 
@@ -10,7 +10,9 @@ This assumes your commit authors are developers names joined with "and", an ampe
 
 ## Usage:
 
-    jp@populuxe:~/Projects/lorem(master)$ ./pair-stats Habitasse Platea
+    Options:  -d, --days,  the number of days you would like to analyze.  Default: 30 days
+
+    jp@populuxe:~/Projects/lorem(master)$ ./pair-stats [options] Habitasse Platea
     Pairing stats for Habitasse Platea since 2009-12-06
     
     Developer            Days     Commits  %
