@@ -59,7 +59,7 @@ class PairStats
       @commits = @raw_commit_log.map do |commit|
         date, author = commit.split("|")
         { :date => Date.parse(date),
-          :authors => author.split(/ and | ?& ?| ?, ?/) }
+          :authors => author.split(/ and | ?& ?| ?, ? | ?\+ ?/) }
       end
     end
 
